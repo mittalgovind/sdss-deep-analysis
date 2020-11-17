@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from astropy.io import fits
+from astropy.visualization import make_lupton_rgb
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 
 '''
@@ -62,4 +64,12 @@ class ProcessFits():
         data = []
         for image in image_list:
             data.append(self.composeImage(image, bands))
+        data = np.array(data)
         return data
+    
+    def visualize(self, image):
+        '''
+            Visulaize a single image with three bands.
+        '''
+        rgb_image = make_lupton_rgb(image[0], image[1], image[2], stretch=1.5, Q=10)
+        plt.imshow(rgb_image)
