@@ -4,6 +4,7 @@ from astropy.visualization import make_lupton_rgb
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import cv2
 
 '''
 
@@ -13,10 +14,12 @@ import os
     
 '''
 class ProcessFits():
-    def __init__(self, filePrefix = "frame-", fileSuffix = ".fits", directory=""):
-        self.directory = directory
+    def __init__(self, filePrefix = "frame-", fileSuffix = ".fits", directory="", fits_dir="fits", jpeg_dir="jpeg"):
         self.filePrefix = filePrefix
         self.fileSuffix = fileSuffix
+        
+        self.fits_dir = os.path.join(directory, fits_dir)
+        self.jpeg_dir = os.path.join(directory, jpeg_dir)
     
     def getProcessedContent(self, fileName):
         hdu = fits.open(fileName)
@@ -30,7 +33,7 @@ class ProcessFits():
         image = []
         for band in bands:
             filename = self.filePrefix + band + commonFileName + self.fileSuffix
-            filename = os.path.join(self.directory, filename)
+            filename = os.path.join(self.fits_dir, filename)
             image.append(self.getProcessedContent(filename))
         image = np.array(image)
         image = self.standardize(image)
@@ -47,7 +50,7 @@ class ProcessFits():
             the same image.
         '''
         image_list = []
-        with os.scandir(self.directory) as fits_files:
+        with os.scandir(self.fits_dir) as fits_files:
             for fits in fits_files:
                 commonFileName = fits.name.replace(self.filePrefix, '').replace(self.fileSuffix, '')
                 commonFileName = commonFileName[1:]
@@ -55,17 +58,41 @@ class ProcessFits():
                     image_list.append(commonFileName)
         return image_list
     
-    def loadData(self,  bands=['r','g','i']):
+    def getJpegs(self):
+        '''
+            Returns the jpeg images whose corresponding fits files are present.
+            Also removed the fits files from the list whose corresponding jpegs are not present.
+        '''
+        jpeg_list = []
+        jpeg_content = []
+        with os.scandir(self.jpeg_dir) as jpeg_files:
+            for jpeg in jpeg_files:
+                commonFileName = jpeg.name.replace(self.filePrefix, '').replace('irg', '').replace('.jpg', '')
+                if commonFileName in self.image_list:
+                    jpeg_list.append(commonFileName)
+                    filename = os.path.join(jpeg)
+                    image = cv2.imread(filename)
+                    image = image.reshape(3, image.shape[0], image.shape[1])
+                    jpeg_content.append(image)
+                    
+        self.image_list = jpeg_list
+        jpeg_content = np.array(jpeg_content)
+        return jpeg_content
+    
+    def loadData(self,  bands=['r','g','i'], loadJpegs=False):
         '''
             Get a list of file names and load the content of the different bands corresponding to those 
             files.
         '''
-        image_list = self.prepareImageList()
+        self.image_list = self.prepareImageList()
         data = []
-        for image in image_list:
+        jpegs = []
+        if loadJpegs:
+            jpegs = self.getJpegs()
+        for image in self.image_list:
             data.append(self.composeImage(image, bands))
         data = np.array(data)
-        return data
+        return data, jpegs
     
     def visualize(self, image):
         '''
@@ -73,3 +100,7 @@ class ProcessFits():
         '''
         rgb_image = make_lupton_rgb(image[0], image[1], image[2], stretch=1.5, Q=10)
         plt.imshow(rgb_image)
+        
+if __name__ == "__main__":
+    p = ProcessFits(directory='data')
+    f, j = p.loadData(loadJpegs=True)
