@@ -17,7 +17,6 @@ class Segmentation:
     
     def visualiseBoundingBox(self, image, contours):
         # bounding boxes
-        original = image
         for cont in contours:
             x,y,w,h = cv2.boundingRect(cont)
             cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 2)
@@ -34,20 +33,39 @@ class Segmentation:
         rgb_image = make_lupton_rgb(fits_image[0], fits_image[1], fits_image[2], stretch=1.5, Q=10)
         return rgb_image
     
-    def getSegments(self, image, countours):
-        segments = []
-        for cont in countours:
-            x,y,w,h = cv2.boundingRect(cont)
-            segments.append(image[:, x:x+w, y:y+h])
-        return segments
+    def getSegmentedContents(self, image_list, contour_list, fits):
+        contents = []
+        for image, contour in zip(image_list, contour_list):
+            for obj in contour:
+                x,y,w,h = cv2.boundingRect(obj)
+                if w*h >= 100:
+                    if fits:
+                        contents.append(image[:, x:x+w, y:y+h])
+                    else:
+                        contents.append(image[x:x+w, y:y+h, :])
+        return contents
         
-    def processSegmentation(self):
-        processFits = ProcessFits(directory="sample_data")
-        fits_images = processFits.loadData()
+    def processSegmentation(self, fromJpeg=True, mapToFits=True, directory='data'):
+        processFits = ProcessFits(directory=directory)
+        fits_images, jpeg_images = processFits.loadData(loadJpegs=fromJpeg)
         
-        rgb_images = [self.fitsToRGB(image) for image in fits_images]
+        segmented_contents = []
+        if fromJpeg:
+            contours = [self.getBoundingBoxes(img) for img in jpeg_images]
+        else:
+            rgb_images = [self.fitsToRGB(image) for image in fits_images]
+            contours = [self.getBoundingBoxes(img) for img in rgb_images]
         
-        contours = self.getBoundingBoxes(rgb_images[0])
-        self.visualiseBoundingBox(rgb_images[0], contours)
+        if mapToFits:
+            segmented_contents = self.getSegmentedContents(fits_images, contours, True)
+        else:
+            segmented_contents = self.getSegmentedContents(jpeg_images, contours, False)
         
-        return contours
+        #contours = self.getBoundingBoxes(rgb_images[0])
+        #self.visualiseBoundingBox(rgb_images[0], contours)
+        
+        return segmented_contents
+    
+if __name__ == "__main__":
+    segment = Segmentation()
+    contents = segment.processSegmentation(mapToFits=False)
