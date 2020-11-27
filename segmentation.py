@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import cv2
-import numpy as np
 from matplotlib import pyplot as plt
 from process_fits import ProcessFits
 from astropy.visualization import make_lupton_rgb
 
 class Segmentation:
+    def __init__(self, thresholdObjectArea=400):
+        self.thresholdObjectArea = thresholdObjectArea
+    
     def getBoundingBoxes(self, image):
         # thresholding
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -19,7 +21,8 @@ class Segmentation:
         # bounding boxes
         for cont in contours:
             x,y,w,h = cv2.boundingRect(cont)
-            cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 2)
+            if w*h >= self.thresholdObjectArea:
+                cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 2)
         
         cv2.imshow('image', image)
         cv2.waitKey()
@@ -38,11 +41,11 @@ class Segmentation:
         for image, contour in zip(image_list, contour_list):
             for obj in contour:
                 x,y,w,h = cv2.boundingRect(obj)
-                if w*h >= 100:
+                if w*h >= self.thresholdObjectArea:
                     if fits:
-                        contents.append(image[:, x:x+w, y:y+h])
+                        contents.append(image[:, y:y+h, x:x+w])
                     else:
-                        contents.append(image[x:x+w, y:y+h, :])
+                        contents.append(image[y:y+h, x:x+w, :])
         return contents
         
     def processSegmentation(self, fromJpeg=True, mapToFits=True, directory='data'):
@@ -61,11 +64,9 @@ class Segmentation:
         else:
             segmented_contents = self.getSegmentedContents(jpeg_images, contours, False)
         
-        #contours = self.getBoundingBoxes(rgb_images[0])
-        #self.visualiseBoundingBox(rgb_images[0], contours)
-        
         return segmented_contents
     
 if __name__ == "__main__":
-    segment = Segmentation()
-    contents = segment.processSegmentation(mapToFits=False)
+    thresholdObjectArea=625
+    segment = Segmentation(thresholdObjectArea)
+    objects = segment.processSegmentation(mapToFits=False)

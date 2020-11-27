@@ -72,7 +72,6 @@ class ProcessFits():
                     jpeg_list.append(commonFileName)
                     filename = os.path.join(jpeg)
                     image = cv2.imread(filename)
-                    #image = image.reshape(3, image.shape[0], image.shape[1])
                     jpeg_content.append(image)
                     
         self.image_list = jpeg_list
