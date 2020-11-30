@@ -75,7 +75,24 @@ class Segmentation:
         
         return segmented_contents
     
+    def standardScaler(self, objects):
+        '''
+            Bring objects to a common scale (largest scale amoung the images to retain information). 
+        '''
+        greatest = 0
+        standard_dim = (10, 10)
+        for obj in objects:
+            w, h  = obj.shape[0], obj.shape[1]
+            if w*h > greatest:
+                greatest = w*h
+                standard_dim = (w,h)
+        length = len(objects)
+        for i in range(length):
+            objects[i] = cv2.resize(objects[i], standard_dim)
+        return objects
+    
 if __name__ == "__main__":
     thresholdObjectArea=625
     segment = Segmentation(thresholdObjectArea)
     objects = segment.processSegmentation(mapToFits=False)
+    std_obj = segment.standardScaler(objects)
