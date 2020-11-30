@@ -4,8 +4,12 @@ from matplotlib import pyplot as plt
 from process_fits import ProcessFits
 from astropy.visualization import make_lupton_rgb
 
+'''
+    Extract objects from images of patch of sky.
+'''
 class Segmentation:
     def __init__(self, thresholdObjectArea=400):
+        # thresholdObjectArea determines the minimum area (in pixels) for an object to be selected.
         self.thresholdObjectArea = thresholdObjectArea
     
     def getBoundingBoxes(self, image):
@@ -49,6 +53,11 @@ class Segmentation:
         return contents
         
     def processSegmentation(self, fromJpeg=True, mapToFits=True, directory='data'):
+        '''
+            This method loads the images of patch of sky, detects and returns a list of objects.
+            If fromJpeg is set then object bounding boxes are detected from jpeg images.
+            If mapToFits is set then detected bounding boxes are used to get contents from fits files.
+        '''
         processFits = ProcessFits(directory=directory)
         fits_images, jpeg_images = processFits.loadData(loadJpegs=fromJpeg)
         
