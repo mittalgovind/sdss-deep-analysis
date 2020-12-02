@@ -91,7 +91,7 @@ class ProcessFits():
         for image in self.image_list:
             data.append(self.composeImage(image, bands))
         data = np.array(data)
-        return data, jpegs
+        return data, jpegs, self.image_list
     
     def visualize(self, image):
         '''
@@ -102,4 +102,4 @@ class ProcessFits():
         
 if __name__ == "__main__":
     p = ProcessFits(directory='data')
-    f, j = p.loadData(loadJpegs=True)
+    fits, jpeg, files = p.loadData(loadJpegs=True)

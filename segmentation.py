@@ -3,6 +3,7 @@ import cv2
 from matplotlib import pyplot as plt
 from process_fits import ProcessFits
 from astropy.visualization import make_lupton_rgb
+import os
 
 '''
     Extract objects from images of patch of sky.
@@ -32,24 +33,28 @@ class Segmentation:
         cv2.waitKey()
         
     def compareImages(self, *images):
+        fig = plt.figure(figsize=(10, 10))
+        rows = len(images)//5
         for i, image in enumerate(images):
-            plt.subplot(256,256,i*256+1),plt.imshow(image)
+            fig.add_subplot(rows, 5, i)
+            plt.imshow(image)
         plt.show()
     
     def fitsToRGB(self, fits_image):
         rgb_image = make_lupton_rgb(fits_image[0], fits_image[1], fits_image[2], stretch=1.5, Q=10)
         return rgb_image
     
-    def getSegmentedContents(self, image_list, contour_list, fits):
-        contents = []
-        for image, contour in zip(image_list, contour_list):
+    def getSegmentedContents(self, image_list, contour_list, file_names, fits):
+        contents = {}
+        for image, contour, file in zip(image_list, contour_list, file_names):
+            contents[file] = []
             for obj in contour:
                 x,y,w,h = cv2.boundingRect(obj)
                 if w*h >= self.thresholdObjectArea:
                     if fits:
-                        contents.append(image[:, y:y+h, x:x+w])
+                        contents[file].append(image[:, y:y+h, x:x+w])
                     else:
-                        contents.append(image[y:y+h, x:x+w, :])
+                        contents[file].append(image[y:y+h, x:x+w, :])
         return contents
         
     def processSegmentation(self, fromJpeg=True, mapToFits=True, directory='data'):
@@ -59,7 +64,7 @@ class Segmentation:
             If mapToFits is set then detected bounding boxes are used to get contents from fits files.
         '''
         processFits = ProcessFits(directory=directory)
-        fits_images, jpeg_images = processFits.loadData(loadJpegs=fromJpeg)
+        fits_images, jpeg_images, file_names = processFits.loadData(loadJpegs=fromJpeg)
         
         segmented_contents = []
         if fromJpeg:
@@ -69,9 +74,9 @@ class Segmentation:
             contours = [self.getBoundingBoxes(img) for img in rgb_images]
         
         if mapToFits:
-            segmented_contents = self.getSegmentedContents(fits_images, contours, True)
+            segmented_contents = self.getSegmentedContents(fits_images, contours, file_names, True)
         else:
-            segmented_contents = self.getSegmentedContents(jpeg_images, contours, False)
+            segmented_contents = self.getSegmentedContents(jpeg_images, contours, file_names, False)
         
         return segmented_contents
     
@@ -79,20 +84,35 @@ class Segmentation:
         '''
             Bring objects to a common scale (largest scale amoung the images to retain information). 
         '''
-        greatest = 0
-        standard_dim = (10, 10)
-        for obj in objects:
+        #greatest = 0
+        standard_dim = (128, 128)
+        '''for obj in objects:
             w, h  = obj.shape[0], obj.shape[1]
             if w*h > greatest:
                 greatest = w*h
-                standard_dim = (w,h)
-        length = len(objects)
-        for i in range(length):
-            objects[i] = cv2.resize(objects[i], standard_dim)
+                standard_dim = (w,h)'''
+        for image in objects.keys():
+            length = len(objects[image])
+            for i in range(length):
+                objects[image][i] = cv2.resize(objects[image][i], standard_dim)
         return objects
+    
+    def saveObjects(self, objects, folder='objects'):
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        for image in objects.keys():
+            sub_folder = 'frame' + image
+            sub_folder = os.path.join(folder, sub_folder)
+            if not os.path.exists(sub_folder):
+                os.makedirs(sub_folder)
+            for i, obj in enumerate(objects[image]):
+                filename = str(i) + '.jpg'
+                filename = os.path.join(sub_folder, filename)
+                cv2.imwrite(filename, obj)
     
 if __name__ == "__main__":
     thresholdObjectArea=625
     segment = Segmentation(thresholdObjectArea)
     objects = segment.processSegmentation(mapToFits=False)
     std_obj = segment.standardScaler(objects)
+    segment.saveObjects(std_obj)
