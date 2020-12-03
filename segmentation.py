@@ -12,6 +12,7 @@ class Segmentation:
     def __init__(self, thresholdObjectArea=400):
         # thresholdObjectArea determines the minimum area (in pixels) for an object to be selected.
         self.thresholdObjectArea = thresholdObjectArea
+        self.log_index = 0
     
     def getBoundingBoxes(self, image):
         # thresholding
@@ -20,6 +21,8 @@ class Segmentation:
         threshold_value, threshold_image = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         # get contours
         contours, hierarchy = cv2.findContours(threshold_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        print("Contours for image: ", self.log_index)
+        self.log_index += 1
         return contours
     
     def visualiseBoundingBox(self, image, contours):
@@ -52,9 +55,9 @@ class Segmentation:
                 x,y,w,h = cv2.boundingRect(obj)
                 if w*h >= self.thresholdObjectArea:
                     if fits:
-                        contents[file].append(image[:, y:y+h, x:x+w])
+                        contents[file].append((image[:, y:y+h, x:x+w], w*h))
                     else:
-                        contents[file].append(image[y:y+h, x:x+w, :])
+                        contents[file].append((image[y:y+h, x:x+w, :], w*h))
         return contents
         
     def processSegmentation(self, fromJpeg=True, mapToFits=True, directory='data'):
@@ -63,16 +66,19 @@ class Segmentation:
             If fromJpeg is set then object bounding boxes are detected from jpeg images.
             If mapToFits is set then detected bounding boxes are used to get contents from fits files.
         '''
+        print("Loading patches of sky...")
         processFits = ProcessFits(directory=directory)
         fits_images, jpeg_images, file_names = processFits.loadData(loadJpegs=fromJpeg, loadFits=mapToFits)
         
         segmented_contents = []
+        print("Getting bounding boxes...")
         if fromJpeg:
             contours = [self.getBoundingBoxes(img) for img in jpeg_images]
         else:
             rgb_images = [self.fitsToRGB(image) for image in fits_images]
             contours = [self.getBoundingBoxes(img) for img in rgb_images]
         
+        print("Extracting contents...")
         if mapToFits:
             segmented_contents = self.getSegmentedContents(fits_images, contours, file_names, True)
         else:
@@ -85,6 +91,7 @@ class Segmentation:
             Bring objects to a common scale (largest scale amoung the images to retain information). 
         '''
         #greatest = 0
+        print("Scaling objects...")
         standard_dim = (128, 128)
         '''for obj in objects:
             w, h  = obj.shape[0], obj.shape[1]
@@ -94,10 +101,11 @@ class Segmentation:
         for image in objects.keys():
             length = len(objects[image])
             for i in range(length):
-                objects[image][i] = cv2.resize(objects[image][i], standard_dim)
+                objects[image][i] = (cv2.resize(objects[image][i][0], standard_dim), objects[image][i][1])
         return objects
     
     def saveObjects(self, objects, folder='extracted_objects'):
+        print("Saving objects...")
         if not os.path.exists(folder):
             os.makedirs(folder)
         for image in objects.keys():
@@ -106,9 +114,9 @@ class Segmentation:
             if not os.path.exists(sub_folder):
                 os.makedirs(sub_folder)
             for i, obj in enumerate(objects[image]):
-                filename = str(i) + '.jpg'
+                filename = str(obj[1]) + '_' + str(i) + '.jpg'
                 filename = os.path.join(sub_folder, filename)
-                cv2.imwrite(filename, obj)
+                cv2.imwrite(filename, obj[0])
     
 if __name__ == "__main__":
     thresholdObjectArea=625
@@ -116,3 +124,4 @@ if __name__ == "__main__":
     objects = segment.processSegmentation(mapToFits=False)
     std_obj = segment.standardScaler(objects)
     segment.saveObjects(std_obj)
+    print("Done!")
