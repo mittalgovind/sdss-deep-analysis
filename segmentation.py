@@ -64,7 +64,7 @@ class Segmentation:
             If mapToFits is set then detected bounding boxes are used to get contents from fits files.
         '''
         processFits = ProcessFits(directory=directory)
-        fits_images, jpeg_images, file_names = processFits.loadData(loadJpegs=fromJpeg)
+        fits_images, jpeg_images, file_names = processFits.loadData(loadJpegs=fromJpeg, loadFits=mapToFits)
         
         segmented_contents = []
         if fromJpeg:
@@ -97,7 +97,7 @@ class Segmentation:
                 objects[image][i] = cv2.resize(objects[image][i], standard_dim)
         return objects
     
-    def saveObjects(self, objects, folder='objects'):
+    def saveObjects(self, objects, folder='extracted_objects'):
         if not os.path.exists(folder):
             os.makedirs(folder)
         for image in objects.keys():

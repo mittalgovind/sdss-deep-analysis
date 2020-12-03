@@ -44,17 +44,23 @@ class ProcessFits():
         denominator = max(image.std(), 1/np.sqrt(np.prod(image.shape)))
         return numerator/denominator
     
-    def prepareImageList(self):
+    def prepareImageList(self, load_fits=True):
         '''
             Prepare a list of fits file names by retaining the part common to different bands of
             the same image.
         '''
         image_list = []
-        with os.scandir(self.fits_dir) as fits_files:
-            for fits in fits_files:
-                commonFileName = fits.name.replace(self.filePrefix, '').replace(self.fileSuffix, '')
-                commonFileName = commonFileName[1:]
-                if commonFileName not in image_list:
+        if load_fits:
+            with os.scandir(self.fits_dir) as fits_files:
+                for fits in fits_files:
+                    commonFileName = fits.name.replace(self.filePrefix, '').replace(self.fileSuffix, '')
+                    commonFileName = commonFileName[1:]
+                    if commonFileName not in image_list:
+                        image_list.append(commonFileName)
+        else:
+            with os.scandir(self.jpeg_dir) as jpeg_files:
+                for jpeg in jpeg_files:
+                    commonFileName = jpeg.name.replace(self.filePrefix, '').replace('irg', '').replace('.jpg', '')
                     image_list.append(commonFileName)
         return image_list
     
@@ -78,18 +84,19 @@ class ProcessFits():
         jpeg_content = np.array(jpeg_content)
         return jpeg_content
     
-    def loadData(self,  bands=['r','g','i'], loadJpegs=False):
+    def loadData(self,  bands=['r','g','i'], loadJpegs=False, loadFits=True):
         '''
             Get a list of file names and load the content of the different bands corresponding to those 
             files.
         '''
-        self.image_list = self.prepareImageList()
+        self.image_list = self.prepareImageList(loadFits)
         data = []
         jpegs = []
         if loadJpegs:
             jpegs = self.getJpegs()
-        for image in self.image_list:
-            data.append(self.composeImage(image, bands))
+        if loadFits:
+            for image in self.image_list:
+                data.append(self.composeImage(image, bands))
         data = np.array(data)
         return data, jpegs, self.image_list
     
@@ -102,4 +109,4 @@ class ProcessFits():
         
 if __name__ == "__main__":
     p = ProcessFits(directory='data')
-    fits, jpeg, files = p.loadData(loadJpegs=True)
+    fits, jpeg, files = p.loadData(loadJpegs=True, loadFits=False)
