@@ -14,7 +14,7 @@ import cv2
     
 '''
 class ProcessFits():
-    def __init__(self, filePrefix = "frame-", fileSuffix = ".fits", directory="", fits_dir="fits", jpeg_dir="jpeg"):
+    def __init__(self, filePrefix = "frame-", fileSuffix = ".fits", directory="data", fits_dir="fits", jpeg_dir="jpeg"):
         self.filePrefix = filePrefix
         self.fileSuffix = fileSuffix
         

@@ -86,6 +86,23 @@ class Segmentation:
         
         return segmented_contents
     
+    def processSingleImage(self, filename, commonname):
+        image = cv2.imread(filename)
+        jpeg_images = [image]
+        contours = [self.getBoundingBoxes(img) for img in jpeg_images]
+        segmented_contents = self.getSegmentedContents(jpeg_images, contours, [commonname], False)
+        return segmented_contents
+    
+    def getObjectsFromJpegs(self, root='data', jpeg_dir="jpeg"):
+        directory = os.path.join(root, jpeg_dir)
+        with os.scandir(directory) as jpeg_files:
+            for jpeg in jpeg_files:
+                commonFileName = jpeg.name.replace('frame-', '').replace('irg', '').replace('.jpg', '')
+                filename = os.path.join(jpeg)
+                objects = self.processSingleImage(filename, commonFileName)
+                std_obj = self.standardScaler(objects)
+                self.saveObjects(std_obj)
+    
     def standardScaler(self, objects):
         '''
             Bring objects to a common scale (largest scale amoung the images to retain information). 
@@ -121,7 +138,5 @@ class Segmentation:
 if __name__ == "__main__":
     thresholdObjectArea=625
     segment = Segmentation(thresholdObjectArea)
-    objects = segment.processSegmentation(mapToFits=False)
-    std_obj = segment.standardScaler(objects)
-    segment.saveObjects(std_obj)
+    segment.getObjectsFromJpegs(root='data')
     print("Done!")
