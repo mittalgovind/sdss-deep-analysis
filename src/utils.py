@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 #
 
+from pdb import set_trace
 import argparse
 from logging import getLogger
 import os
@@ -18,7 +19,6 @@ import torch
 import torch.distributed as dist
 
 from .logger import create_logger, PD_Stats
-
 
 FALSY_STRINGS = {'off', 'false', '0'}
 TRUTHY_STRINGS = {'on', 'true', '1'}
@@ -57,7 +57,7 @@ def init_distributed_mode(args, make_communication_groups=True):
     """
 
     args.is_slurm_job = 'SLURM_JOB_ID' in os.environ and not args.debug_slurm
-
+    set_trace()
     if args.is_slurm_job:
         args.rank = int(os.environ['SLURM_PROCID'])
         jobid = os.environ["SLURM_JOBID"]
