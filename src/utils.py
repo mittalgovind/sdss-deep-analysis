@@ -60,6 +60,9 @@ def init_distributed_mode(args, make_communication_groups=True):
 
     if args.is_slurm_job:
         args.rank = int(os.environ['SLURM_PROCID'])
+        jobid = os.environ["SLURM_JOBID"]
+        args.dist_url = "file://{}.{}".format(os.path.realpath('dist_file'),
+                                              jobid)
     else:
         # jobs started with torch.distributed.launch
         # read environment variables
