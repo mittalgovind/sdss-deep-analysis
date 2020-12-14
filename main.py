@@ -25,6 +25,8 @@ from src.trainer import train_network
 from src.utils import (bool_flag, check_parameters, end_of_epoch, fix_random_seeds,
                        init_distributed_mode, initialize_exp, restart_from_checkpoint)
 
+from data_loader import DataLoader
+
 
 def get_parser():
     """
@@ -126,7 +128,7 @@ def main(args):
     init_signal_handler()
 
     # load data
-    dataset = YFCC100M_dataset(args.data_path, size=args.size_dataset)
+    dataset = DataLoader(args.data_path)
 
     # prepare the different data transformations
     tr_cluster, tr_train = get_data_transformations(args.rotation * 90)
