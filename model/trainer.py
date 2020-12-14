@@ -15,8 +15,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data.sampler import Sampler
 
-from .utils import AverageMeter, get_indices_sparse
-from model.slurm import trigger_job_requeue
+from utils import AverageMeter, get_indices_sparse
+from slurm import trigger_job_requeue
 
 
 logger = getLogger()
