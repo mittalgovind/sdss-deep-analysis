@@ -13,11 +13,14 @@ from torch.utils.data.sampler import Sampler
 
 import models
 
+device = torch.device('cpu')
+if torch.cuda.is_available():
+    device = torch.device('cuda')
 def load_model(path):
     """Loads model and return it without DataParallel table."""
     if os.path.isfile(path):
         print("=> loading checkpoint '{}'".format(path))
-        checkpoint = torch.load(path)
+        checkpoint = torch.load(path, map_location=device)
 
         # size of the top layer
         N = checkpoint['state_dict']['top_layer.bias'].size()
