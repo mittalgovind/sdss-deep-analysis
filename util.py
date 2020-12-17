@@ -11,7 +11,7 @@ import numpy as np
 import torch
 from torch.utils.data.sampler import Sampler
 
-import torchvision.models as models
+import models
 
 def load_model(path):
     """Loads model and return it without DataParallel table."""
@@ -24,7 +24,6 @@ def load_model(path):
 
         # build skeleton of the model
         sob = 'sobel.0.weight' in checkpoint['state_dict'].keys()
-        #model = models.alexnet(pretrained=False)
         model = models.__dict__[checkpoint['arch']](sobel=sob, out=int(N[0]))
 
         # deal with a dataparallel table
